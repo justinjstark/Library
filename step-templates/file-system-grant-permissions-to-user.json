@@ -1,0 +1,55 @@
+{
+    "Id": "848CD07F-B1B4-4D96-8C75-543CB193EB5B",
+    "Name": "File System - Grant Permissions to User",
+    "Description": "Grant file system permissions on a directory to a user",
+    "ActionType": "Octopus.Script",
+    "Version": 1,
+    "CommunityActionTemplateId": null,
+    "Properties": {
+      "Octopus.Action.Script.ScriptBody": "$userParameter = $OctopusParameters['User']\n$directoryParameter = $OctopusParameters['Directory']\n$permissionsParameter = $OctopusParameters['Permissions']\n\nif(!(Test-Path $directoryParameter))\n{\n    throw \"$directoryParameter does not exist\"\n}\n\nfunction Set-Permission([string]$user, [string]$directory, [string]$rights, [string]$addorremove)\n{\n    Write-Host \"$addorremove $rights permissions for $user on $directory\"\n    $acl = (Get-Item $directory).GetAccessControl('Access')\n    $acl.SetAccessRuleProtection($False, $False)\n    $rule =\n        if ($acl -is [System.Security.AccessControl.DirectorySecurity])\n        {\n            New-Object System.Security.AccessControl.FileSystemAccessRule($user, $rights, \"ContainerInherit, ObjectInherit\", \"None\", \"Allow\")\n        }\n        else\n        {\n            New-Object System.Security.AccessControl.FileSystemAccessRule($user, $rights, \"Allow\")\n        }\n    switch($addorremove)\n    {\n        \"Add\"\n        {\n            $acl.AddAccessRule($rule)\n        }\n        \"Remove\"\n        {\n            $acl.RemoveAccessRule($rule)\n        }\n    }\n\n    Set-Acl $directory $acl\n}\n\nswitch($permissionsParameter)\n{\n    \"FullControl\" #Full Control + Modify + Read & execute + List folder contents + Read\n    {\n        Set-Permission $userParameter $directoryParameter \"FullControl\" \"Add\"\n    }\n    \"Modify\" #Modify + Read & execute + List folder contents + Read\n    {\n        Set-Permission $userParameter $directoryParameter \"FullControl\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Modify\" \"Add\"\n    }\n    \"Read&Execute\" #Read & execute + List folder contents + Read\n    {\n        Set-Permission $userParameter $directoryParameter \"FullControl\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Modify\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Write\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"ReadAndExecute\" \"Add\"\n    }\n    \"Read+Write\" #Read + Write\n    {\n        Set-Permission $userParameter $directoryParameter \"FullControl\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Modify\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Execute\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Write\" \"Add\"\n        Set-Permission $userParameter $directoryParameter \"Read\" \"Add\"\n    }\n    \"Read\" #Read\n    {\n        Set-Permission $userParameter $directoryParameter \"FullControl\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Modify\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Execute\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Write\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Read\" \"Add\"\n    }\n    \"Write\" #Write\n    {\n        Set-Permission $userParameter $directoryParameter \"FullControl\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Modify\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Execute\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Read\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Write\" \"Add\"\n    }\n    \"None\"\n    {\n        Set-Permission $userParameter $directoryParameter \"FullControl\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Modify\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Execute\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Read\" \"Remove\"\n        Set-Permission $userParameter $directoryParameter \"Write\" \"Remove\"\n    }\n}\n\nWrite-Host \"Complete\"\n",
+      "Octopus.Action.Script.Syntax": "PowerShell",
+      "Octopus.Action.Script.ScriptSource": "Inline",
+      "Octopus.Action.RunOnServer": "false"
+    },
+    "Parameters": [
+      {
+        "Id": "52840466-3d76-4a22-b768-6d92dbf4d971",
+        "Name": "Directory",
+        "Label": "Directory",
+        "HelpText": "The directory to grant the user permissions to",
+        "DefaultValue": "",
+        "DisplaySettings": {
+          "Octopus.ControlType": "SingleLineText"
+        },
+        "Links": {}
+      },
+      {
+        "Id": "f380d60a-8bab-4263-884b-ea6a826718cb",
+        "Name": "User",
+        "Label": "User",
+        "HelpText": "The user to grant file system permissions to",
+        "DefaultValue": "",
+        "DisplaySettings": {},
+        "Links": {}
+      },
+      {
+        "Id": "73b2c210-461e-412a-99cc-d14aff058573",
+        "Name": "Permissions",
+        "Label": "Permissions",
+        "HelpText": "The permissions to grant",
+        "DefaultValue": "",
+        "DisplaySettings": {
+          "Octopus.ControlType": "Select",
+          "Octopus.SelectOptions": "FullControl|Full control\nModify|Modify (+ Read & execute + List folder contents + Read)\nRead&Execute|Read & execute (+ List folder contents + Read)\nRead+Write|Read + Write\nRead|Read\nWrite|Write"
+        },
+        "Links": {}
+      }
+    ],
+    "LastModifiedBy": "justinjstark", 
+    "$Meta": {
+      "ExportedAt": "2018-12-17T19:21:21.467Z",
+      "OctopusVersion": "2018.1.2",
+      "Type": "ActionTemplate"
+    },
+    "Category": "filesystem"
+}
